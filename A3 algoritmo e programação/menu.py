@@ -173,6 +173,10 @@ def listar_vendedores():
         print("Código:", vendedor["codigo"], "| Nome:", vendedor["nome"], "| Telefone:", vendedor["telefone"])
 
 
+#PEDRO COLOCAR O CODIGO DO IMPOSTO
+#REFAZER O CODIGO
+
+
 # ---------------------------------------------------------------
 # RELATÓRIOS
 # Cada função monta o relatório como uma lista de linhas de texto,
