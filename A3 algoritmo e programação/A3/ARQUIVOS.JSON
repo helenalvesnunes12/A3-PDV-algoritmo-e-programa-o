@@ -1,0 +1,50 @@
+{
+    "produtos": [
+        {
+            "codigo": "P0001",
+            "nome": "Mouse Gamer",
+            "valor": 89.9,
+            "estoque": 20,
+            "taxa_imposto": 25.0,
+            "taxa_comissao": 5.0
+        },
+        {
+            "codigo": "P0002",
+            "nome": "Faca",
+            "valor": 50.0,
+            "estoque": 16,
+            "taxa_imposto": 25.0,
+            "taxa_comissao": 5.0
+        }
+    ],
+    "clientes": [
+        {
+            "codigo": "C0001",
+            "nome": "Lucas Ferreira",
+            "telefone": "83987654321"
+        },
+        {
+            "codigo": "C0002",
+            "nome": "Paulo",
+            "telefone": "Nao informado"
+        },
+        {
+            "codigo": "C0003",
+            "nome": "Helena",
+            "telefone": "Nao informado"
+        }
+    ],
+    "vendedores": [
+        {
+            "codigo": "V0001",
+            "nome": "Pedro Henrique",
+            "telefone": "83999887766"
+        },
+        {
+            "codigo": "V0002",
+            "nome": "Douglas",
+            "telefone": "Nao informado"
+        }
+    ],
+    "vendas": []
+}
