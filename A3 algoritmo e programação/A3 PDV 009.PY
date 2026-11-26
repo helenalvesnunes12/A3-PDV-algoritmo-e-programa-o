@@ -1,0 +1,1432 @@
+import random
+from datetime import date, datetime  # Importa as ferramentas de data usadas na data da venda e nos relatórios por período.
+
+# ==========================================
+# CONFIGURACOES PADRAO
+# ==========================================
+
+TAXA_IMPOSTO_PADRAO = 25.0
+TAXA_COMISSAO_PADRAO = 5.0
+
+LINHA = "-" * 50  # Linha separadora usada nos relatórios que são exibidos e salvos em .txt.
+
+# ==========================================
+# LISTAS DO SISTEMA
+# ==========================================
+
+produtos = []
+clientes = []
+vendedores = []
+vendas = []
+
+
+# ==========================================
+# GERACAO DE CODIGOS
+# ==========================================
+
+# contadores dos códigos responsável por criar o código em ordem crescente.
+contador_produto = 4
+contador_cliente = 3
+contador_vendedor = 2
+
+def gerar_codigo(prefixo):
+
+    if prefixo == "P":
+        global contador_produto # Global permite  alteratr a varivel fora do def.
+        contador_produto += 1 # Contador que entrega a quantidade de protudos = codigo.
+        return f"P{contador_produto:04d}" # Retorna o código formatado. O 04d faz o número ter pelo menos quatro dígitos.
+
+    elif prefixo == "C":
+        global contador_cliente
+        contador_cliente += 1
+        return f"C{contador_cliente:04d}"
+
+    elif prefixo == "V":
+        global contador_vendedor
+        contador_vendedor += 1
+        return f"V{contador_vendedor:04d}"
+
+
+def gerar_codigo_produto():
+    return gerar_codigo("P")
+
+def gerar_codigo_cliente():
+    return gerar_codigo("C")
+
+def gerar_codigo_vendedor():
+    return gerar_codigo("V")
+
+# ==========================================
+# CONTROLE DE ESTOQUE / Feito por Douglas
+# ==========================================
+
+def cadastrar_produto():
+    # Função responsável por realizar o cadastro dos produtos, um produto precisa de um código, nome, valor e quantidade 
+    # em estoque.
+    
+    print("\n--- CADASTRO DE PRODUTO ---")
+
+    while True:
+        # While responsável por repetir a pergunta caso o nome esteja vazio ou já esteja cadastrado.
+        nome = input("Digite o nome do produto: ")
+
+        if nome == "":
+            print("Erro: O nome do produto não pode ficar em branco!")
+            continue
+
+        nome_repetido = False
+
+        for produto in produtos:
+            # For responsável por verificar a lista e informar se possui um nome repetido.
+            if produto["nome"].lower() == nome.lower(): # .lower para deixar minusculo para comparar
+                print("Erro: Já existe um produto cadastrado com o nome", produto["nome"])
+                nome_repetido = True #
+                break
+
+        if not nome_repetido:
+            break
+
+    while True:
+        # While responsável por repetir a pergunta caso o valor informado seja inválido.
+        try:
+            valor = float(input("Digite o valor unitário (R$): "))
+
+            # If responsável por verificar se o valor do produto é maior que zero.
+            if valor <= 0:
+                print("Erro: O valor do produto deve ser maior que zero!")
+                continue
+
+            break
+
+        except ValueError:
+            # Except responsável por informar caso o usuário digite algo que não seja um número válido.
+            print("Erro: Digite um valor numérico válido!")
+
+    while True:
+        # While responsável por repetir a pergunta caso a quantidade informada seja inválida.
+        try:
+            estoque = int(input("Digite a quantidade inicial em estoque: "))
+
+            # If responsável por verificar se a quantidade do estoque não é menor que zero.
+            if estoque < 0:
+                print("Erro: A quantidade em estoque não pode ser menor que zero!")
+                continue
+
+            break
+
+        except ValueError:
+            # Except ValueError responsável por informar caso o usuário digite algo que não seja um número inteiro válido.
+            print("Erro: Digite uma quantidade inteira válida!")
+
+    codigo = gerar_codigo_produto()
+
+    # Criação do dicionário do produto.
+    novo_produto = {
+        "codigo": codigo,
+        "nome": nome,
+        "valor": valor,
+        "estoque": estoque,
+        "taxa_imposto": TAXA_IMPOSTO_PADRAO,
+        "taxa_comissao": TAXA_COMISSAO_PADRAO
+    }
+    
+    produtos.append(novo_produto)
+    print("Produto", nome, "cadastrado com sucesso.")
+    print("Código gerado:", codigo)
+
+def listar_produtos(): 
+    print("\n--- CONSULTA DE ESTOQUE ---")
+    # If responsável por por informar que não possui itens cadastrados.
+    if not produtos:
+        print("Nenhum produto cadastrado no momento.")
+        return
+
+    valor_total_estoque = 0 # Contador do valor bruto investido no estoque.
+    
+    #For responsável por percorrer a lista para cada produto cadastrado e mostrar o código, nome, preço, quantidade e o valor 
+    # somado das unidades mais o valor bruto investido no estoque.
+    for produto in produtos:
+        valor_total_produto = produto["valor"] * produto["estoque"]
+
+        print("Código:", produto["codigo"], "| Nome:", produto["nome"], "| Preço: R$", produto["valor"], "| Estoque:", produto["estoque"], "| Valor total: R$", f"{valor_total_produto:.2f}")
+
+        valor_total_estoque += valor_total_produto # Soma o valor total das unidades como valor total bruto do estoque.
+
+    print(f"\nValor bruto total do estoque: R$ {valor_total_estoque:.2f}")
+    
+def remover_produto_estoque():
+    print("\n--- REMOVER PRODUTO DO ESTOQUE ---")
+
+    # If responsável por verificar se existe algum produto cadastrado.
+    if not produtos:
+        print("Nenhum produto cadastrado no momento.")
+        return
+
+    while True:
+        # While responsável por repetir a pergunta caso o código informado não exista.
+        codigo = input("Digite o código do produto: ").upper()
+
+        # For responsável por percorrer a lista e verificar se o código informado pertence a algum produto.
+        for produto in produtos:
+            if produto["codigo"] == codigo:
+                break
+        else:
+            print("Erro: Produto não encontrado!")
+            continue
+
+        break
+
+    print("\nProduto:", produto["nome"])
+    print("Quantidade disponível:", produto["estoque"])
+
+    while True:
+        # While responsável por repetir a pergunta caso a quantidade informada seja inválida.
+        try:
+            quantidade = int(input("Digite a quantidade que deseja remover: "))
+
+            # If responsável por verificar se a quantidade informada é maior que o estoque disponível.
+            if quantidade > produto["estoque"]:
+                print("Erro: A quantidade informada é maior que o estoque disponível!")
+                continue
+
+            # If responsável por verificar se a quantidade informada é maior que zero.
+            if quantidade <= 0:
+                print("Erro: A quantidade deve ser maior que zero!")
+                continue
+
+            break
+
+        except ValueError:
+            # Except responsável por informar caso o usuário digite algo que não seja um número inteiro válido.
+            print("Erro: Digite uma quantidade inteira válida!")
+
+    # Subtrai a quantidade informada do estoque atual do produto.
+    produto["estoque"] -= quantidade
+
+    print("\nProduto removido do estoque com sucesso!")
+    print("Produto:", produto["nome"])
+    print("Quantidade removida:", quantidade)
+    print("Estoque restante:", produto["estoque"])
+
+def adicionar_produto_estoque(): 
+    print("\n--- ADICIONAR PRODUTO AO ESTOQUE ---")
+
+    # If responsável por verificar se existe algum produto cadastrado.
+    if not produtos:
+        print("Nenhum produto cadastrado no momento.")
+        return
+
+    # Input responsável por receber o código do produto que será atualizado.
+    codigo = input("Digite o código do produto: ")
+
+    # For responsável por percorrer a lista e verificar se o código informado pertence a algum produto.
+    for produto in produtos:
+        if produto["codigo"] == codigo:
+            break
+    else:
+        print("Erro: Produto não encontrado!")
+        return
+
+    print("\nProduto:", produto["nome"])
+    print("Quantidade disponível:", produto["estoque"])
+
+    quantidade = int(input("Digite a quantidade que deseja adicionar: "))
+
+    # If responsável por verificar se a quantidade informada é maior que zero.
+    if quantidade <= 0:
+        print("Erro: A quantidade deve ser maior que zero!")
+        return
+
+    # Soma a quantidade informada ao estoque atual do produto.
+    produto["estoque"] += quantidade
+
+    print("\nProduto adicionado ao estoque com sucesso!")
+    print("Produto:", produto["nome"])
+    print("Quantidade adicionada:", quantidade)
+    print("Estoque atual:", produto["estoque"])
+
+
+# ==========================================
+# CADASTRO DE CLIENTES
+# ==========================================
+
+#Função responsável por cadastrar um novo cliente no sistema.
+def cadastrar_cliente():
+
+    print("\n========== CADASTRO DE CLIENTE ==========")
+
+    #Solicita o nome do cliente e remove espaços desnecessários.
+    nome = input("Nome do cliente (obrigatorio): ").strip()
+    #.strip (Remove os espçaos do começo e final da string)
+
+    #Verifica se o nome foi preenchido.
+    if not nome:
+        print("O nome e obrigatorio!")
+        return
+
+    #Verifica se já existe um cliente cadastrado com o mesmo nome.
+    #For dentro de IF, impede de ter dois clientes com o mesmo nome
+    if any(cliente["nome"].lower() == nome.lower() for cliente in clientes):
+        print("Cliente ja cadastrado!")
+        return
+
+    #Solicita o telefone do cliente, que é opcional.
+    telefone = input("Telefone (opcional, pressione Enter para pular): ").strip()
+
+    #Gera um código para identificar o novo cliente.
+    codigo = gerar_codigo_cliente()
+
+    #Cria um cadastro com as informações do cliente.
+    novo_cliente = {
+        "codigo": codigo,
+        "nome": nome,
+        "telefone": telefone if telefone else "Nao informado"
+    }
+
+    #Adiciona o novo cliente à lista de clientes.
+    clientes.append(novo_cliente)
+
+    #Informa que o cadastro foi realizado com sucesso.
+    print("\nCliente cadastrado com sucesso!")
+    print("Codigo gerado:", codigo)
+
+
+#Função responsável por mostrar todos os clientes cadastrados.
+def listar_clientes():
+
+    print("\n========== CONSULTA DE CLIENTES ==========")
+
+    #Verifica se existe algum cliente cadastrado.
+    if not clientes:
+        print("Nenhum cliente cadastrado.")
+        return
+
+    #Percorre a lista de clientes para mostrar suas informações.
+    for cliente in clientes:
+
+        #Exibe o código, nome e telefone de cada cliente.
+        print(
+            "\nCodigo:", cliente["codigo"],
+            "| Nome:", cliente["nome"],
+            "| Telefone:", cliente["telefone"]
+        )
+
+
+
+#Função usada apenas na aba de consulta de clientes (menu principal).
+#Lista os clientes e oferece a opção de remover.
+def consultar_clientes():
+
+    listar_clientes()
+
+    #Só pergunta sobre remover se existir algum cliente cadastrado.
+    if not clientes:
+        return
+
+    #Pergunta se o usuário deseja remover algum cliente.
+    opcao = input("\nDeseja remover algum cliente? (S/N): ").strip().upper()
+
+    if opcao == "S":
+        remover_cliente()
+
+
+#Função responsável por remover um cliente cadastrado.
+def remover_cliente():
+
+    print("\n========== REMOVER CLIENTE ==========")
+
+    #Verifica se existe algum cliente cadastrado.
+    if not clientes:
+        print("Nenhum cliente cadastrado.")
+        return
+
+    codigo = input("Digite o codigo do cliente: ").strip().upper()
+
+    #Percorre a lista para encontrar o cliente pelo código.
+    for cliente in clientes:
+        if cliente["codigo"] == codigo:
+            clientes.remove(cliente)
+            print("Cliente removido com sucesso!")
+            return
+
+    #Informa caso o código não exista.
+    print("Cliente nao encontrado!")
+
+
+# ==========================================
+# CADASTRO DE VENDEDORES
+# ==========================================
+
+#Função responsável por cadastrar um novo vendedor no sistema.
+def cadastrar_vendedor():
+
+    print("\n========== CADASTRO DE VENDEDOR ==========")
+
+    #Solicita o nome do vendedor e remove espaços desnecessários.
+    nome = input("Nome do vendedor (obrigatorio): ").strip()
+
+    #Verifica se o nome foi preenchido.
+    if not nome:
+        print("O nome e obrigatorio!")
+        return
+
+    #Verifica se já existe um vendedor cadastrado com o mesmo nome.
+    if any(vendedor["nome"].lower() == nome.lower() for vendedor in vendedores):
+        print("Vendedor ja cadastrado!")
+        return
+
+    #Solicita o telefone do vendedor, que é opcional.
+    telefone = input("Telefone (opcional, pressione Enter para pular): ").strip()
+
+    #Gera um código para identificar o novo vendedor.
+    codigo = gerar_codigo_vendedor()
+
+    #Cria um cadastro com as informações do vendedor.
+    novo_vendedor = {
+        "codigo": codigo,
+        "nome": nome,
+        "telefone": telefone if telefone else "Nao informado"
+    }
+
+    #Adiciona o novo vendedor à lista de vendedores.
+    vendedores.append(novo_vendedor)
+
+    #Informa que o cadastro foi realizado com sucesso.
+    print("\nVendedor cadastrado com sucesso!")
+    print("Codigo gerado:", codigo)
+
+
+#Função responsável por mostrar todos os vendedores cadastrados.
+def listar_vendedores():
+
+    print("\n========== CONSULTA DE VENDEDORES ==========")
+
+    #Verifica se existe algum vendedor cadastrado.
+    if not vendedores:
+        print("Nenhum vendedor cadastrado.")
+        return
+
+    #Percorre a lista de vendedores para mostrar suas informações.
+    for vendedor in vendedores:
+
+        #Exibe o código, nome e telefone de cada vendedor.
+        print(
+            "\nCodigo:", vendedor["codigo"],
+            "| Nome:", vendedor["nome"],
+            "| Telefone:", vendedor["telefone"]
+        )
+
+
+
+#Função usada apenas na aba de consulta de vendedores (menu principal).
+#Lista os vendedores e oferece a opção de remover.
+def consultar_vendedores():
+
+    listar_vendedores()
+
+    #Só pergunta sobre remover se existir algum vendedor cadastrado.
+    if not vendedores:
+        return
+
+    #Pergunta se o usuário deseja remover algum vendedor.
+    opcao = input("\nDeseja remover algum vendedor? (S/N): ").strip().upper()
+
+    if opcao == "S":
+        remover_vendedor()
+
+
+#Função responsável por remover um vendedor cadastrado.
+def remover_vendedor():
+
+    print("\n========== REMOVER VENDEDOR ==========")
+
+    #Verifica se existe algum vendedor cadastrado.
+    if not vendedores:
+        print("Nenhum vendedor cadastrado.")
+        return
+
+    codigo = input("Digite o codigo do vendedor: ").strip().upper()
+
+    #Percorre a lista para encontrar o vendedor pelo código.
+    for vendedor in vendedores:
+        if vendedor["codigo"] == codigo:
+            vendedores.remove(vendedor)
+            print("Vendedor removido com sucesso!")
+            return
+
+    #Informa caso o código não exista.
+    print("Vendedor nao encontrado!")
+
+
+# ==========================================
+# REGISTRO DE VENDAS
+# ==========================================
+
+
+def registrar_venda():
+
+    print("\n========== REGISTRO DE VENDA ==========")
+
+    if not produtos or not clientes or not vendedores:
+        print("Cadastre pelo menos um produto, cliente e vendedor!")
+        return
+
+    # CARRINHO DE COMPRAS
+    carrinho = []
+
+    while True:
+
+        listar_produtos()
+
+        codigo_produto = input(
+            "\nCodigo do produto: "
+        ).strip().upper()
+
+        produto = next(
+            (p for p in produtos if p["codigo"] == codigo_produto),
+            None
+        )
+
+        if produto is None:
+            print("Produto nao encontrado!")
+            continue
+
+        try:
+            quantidade = int(input("Quantidade desejada: "))
+        except ValueError:
+            print("Quantidade invalida!")
+            continue
+
+        if quantidade <= 0:
+            print("Quantidade deve ser maior que zero!")
+            continue
+
+        # VERIFICA SE O PRODUTO JA ESTA NO CARRINHO
+        item = next(
+            (p for p in carrinho if p["codigo_produto"] == codigo_produto),
+            None
+        )
+
+        quantidade_carrinho = 0
+
+        if item is not None:
+            quantidade_carrinho = item["quantidade"]
+
+        if quantidade + quantidade_carrinho > produto["estoque"]:
+            print("Estoque insuficiente!")
+            continue
+
+        # ADICIONA OU ATUALIZA O PRODUTO NO CARRINHO
+        if item is not None:
+            item["quantidade"] += quantidade
+        else:
+            carrinho.append({
+                "produto": produto,
+                "codigo_produto": produto["codigo"],
+                "nome": produto["nome"],
+                "valor_unitario": produto["valor"],
+                "quantidade": quantidade,
+                "taxa_imposto": produto["taxa_imposto"],
+                "taxa_comissao": produto["taxa_comissao"]
+            })
+
+        print("Produto adicionado ao carrinho!")
+
+        continuar = input(
+            "\nDeseja adicionar outro produto? (S/N): "
+        ).strip().upper()
+
+        if continuar != "S":
+            break
+
+    if not carrinho:
+        print("Carrinho vazio!")
+        return
+
+    # RESUMO DO CARRINHO
+    print("\n========== RESUMO DO CARRINHO ==========")
+
+    subtotal_geral = 0
+    imposto_geral = 0
+    comissao_geral = 0
+
+    for item in carrinho:
+
+        subtotal = item["valor_unitario"] * item["quantidade"]
+        imposto = subtotal * (item["taxa_imposto"] / 100)
+        comissao = subtotal * (item["taxa_comissao"] / 100)
+
+        item["subtotal"] = round(subtotal, 2)
+        item["imposto"] = round(imposto, 2)
+        item["comissao"] = round(comissao, 2)
+        item["total"] = round(subtotal + imposto, 2)
+
+        subtotal_geral += subtotal
+        imposto_geral += imposto
+        comissao_geral += comissao
+
+        print(f"\nProduto: {item['nome']}")
+        print(f"Quantidade: {item['quantidade']}")
+        print(f"Valor unitario: R$ {item['valor_unitario']:.2f}")
+        print(f"Subtotal: R$ {item['subtotal']:.2f}")
+        print(f"Imposto: R$ {item['imposto']:.2f}")
+
+    total_geral = subtotal_geral + imposto_geral
+
+    print("\n-----------------------------------")
+    print(f"Subtotal geral: R$ {subtotal_geral:.2f}")
+    print(f"Imposto: R$ {imposto_geral:.2f}")
+    print(f"Total da compra: R$ {total_geral:.2f}")
+
+    # CONFIRMACAO DA COMPRA
+    confirmar = input(
+        "\nDeseja confirmar a compra? (S/N): "
+    ).strip().upper()
+
+    if confirmar != "S":
+        print("Compra cancelada! Carrinho mantido durante esta operacao.")
+        return
+
+    # IDENTIFICACAO DO CLIENTE
+    listar_clientes()
+
+    codigo_cliente = input(
+        "\nCodigo do cliente: "
+    ).strip().upper()
+
+    cliente = next(
+        (c for c in clientes if c["codigo"] == codigo_cliente),
+        None
+    )
+
+    if cliente is None:
+        print("Cliente nao encontrado! Venda cancelada.")
+        return
+
+    # IDENTIFICACAO DO VENDEDOR
+    listar_vendedores()
+
+    codigo_vendedor = input(
+        "\nCodigo do vendedor: "
+    ).strip().upper()
+
+    vendedor = next(
+        (v for v in vendedores if v["codigo"] == codigo_vendedor),
+        None
+    )
+
+    if vendedor is None:
+        print("Vendedor nao encontrado! Venda cancelada.")
+        return
+
+    # DESCONTO DO ESTOQUE
+    for item in carrinho:
+        item["produto"]["estoque"] -= item["quantidade"]
+
+    # REGISTRO DA VENDA
+    nova_venda = {
+        "codigo": len(vendas) + 1,
+        "data": date.today(),  # [NOVO] Guarda a data em que a venda foi realizada.
+        "cliente": cliente["nome"],
+        "vendedor": vendedor["nome"],
+        "itens": carrinho,
+        "subtotal": round(subtotal_geral, 2),
+        "imposto": round(imposto_geral, 2),
+        "total": round(total_geral, 2),
+        "comissao": round(comissao_geral, 2)
+    }
+
+    vendas.append(nova_venda)
+
+    print("\n========== VENDA FINALIZADA ==========")
+    print(f"Cliente: {cliente['nome']}")
+    print(f"Vendedor: {vendedor['nome']}")
+    print(f"Total: R$ {total_geral:.2f}")
+    print(f"Comissao: R$ {comissao_geral:.2f}")
+    print("Estoque atualizado com sucesso!")
+
+    # [NOVO] Imprime o recibo da venda com a data e os valores individuais de cada produto.
+    emitir_recibo(nova_venda)
+
+
+
+# ==========================================
+# CONSULTA DE VENDAS E RELATORIOS
+# ==========================================
+
+# [NOVO] Função que valida o texto digitado (DD/MM/AAAA) e o converte em data, sem usar try/except.
+# Devolve a data se for válida ou None se for inválida.
+def converter_data(texto):
+
+    partes = texto.split("/")  # Separa o texto pelas barras: dia, mês e ano.
+
+    # If responsável por verificar se o texto tem exatamente 3 partes (dia/mês/ano).
+    if len(partes) != 3:
+        return None
+
+    dia, mes, ano = partes
+
+    # If responsável por verificar se dia, mês e ano são números e têm o tamanho correto (DD, MM e AAAA).
+    if not (dia.isdecimal() and mes.isdecimal() and ano.isdecimal()):
+        return None
+    if len(dia) != 2 or len(mes) != 2 or len(ano) != 4:
+        return None
+
+    dia = int(dia)
+    mes = int(mes)
+    ano = int(ano)
+
+    # If responsável por verificar se o ano e o mês existem.
+    if ano < 1 or mes < 1 or mes > 12:
+        return None
+
+    # Verifica se o ano é bissexto (fevereiro tem 29 dias nesses anos).
+    bissexto = (ano % 4 == 0 and ano % 100 != 0) or ano % 400 == 0
+
+    # Quantidade de dias de cada mês (janeiro a dezembro).
+    dias_do_mes = [31, 29 if bissexto else 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+    # If responsável por verificar se o dia existe dentro do mês (ex: não existe 31/02).
+    if dia < 1 or dia > dias_do_mes[mes - 1]:
+        return None
+
+    return date(ano, mes, dia)  # Data válida.
+
+
+# [NOVO] Função responsável por pedir ao usuário a data inicial e a data final do relatório.
+def pedir_periodo():
+    # Pede data inicial e final (Enter = sem limite). Retorna (inicio, fim) ou None se invalido.
+
+    print("\nInforme o periodo (formato DD/MM/AAAA). Enter para nao limitar.")
+
+    txt_ini = input("Data inicial: ").strip()  # Texto digitado para a data inicial.
+    txt_fim = input("Data final: ").strip()    # Texto digitado para a data final.
+
+    # Se o campo ficar vazio, usa a menor data possível (sem limite inicial).
+    inicio = date.min
+    # Se o campo ficar vazio, usa a maior data possível (sem limite final).
+    fim = date.max
+
+    # If responsável por validar a data inicial, apenas se ela foi digitada.
+    if txt_ini != "":
+        inicio = converter_data(txt_ini)
+        if inicio is None:
+            print("Data invalida! Use o formato DD/MM/AAAA.")
+            return None
+
+    # If responsável por validar a data final, apenas se ela foi digitada.
+    if txt_fim != "":
+        fim = converter_data(txt_fim)
+        if fim is None:
+            print("Data invalida! Use o formato DD/MM/AAAA.")
+            return None
+
+    # If responsável por verificar se a data inicial é maior que a final.
+    if inicio > fim:
+        print("A data inicial nao pode ser maior que a data final!")
+        return None
+
+    # Devolve o período escolhido para o relatório que chamou a função.
+    return inicio, fim
+
+
+# [NOVO] Função que filtra e devolve somente as vendas feitas dentro do período informado.
+def vendas_do_periodo(inicio, fim):
+    # List comprehension: percorre todas as vendas e mantém só as que estão entre a data inicial e a final.
+    return [v for v in vendas if inicio <= v["data"] <= fim]
+
+
+# [NOVO] Função que monta o texto do período para ser mostrado nos relatórios (ex: 01/11/2026 a 20/11/2026).
+def texto_periodo(inicio, fim):
+    # Se não houve data inicial informada, mostra "inicio" no lugar da data.
+    ini_txt = inicio.strftime("%d/%m/%Y") if inicio != date.min else "inicio"
+    # Se não houve data final informada, mostra "hoje" no lugar da data.
+    fim_txt = fim.strftime("%d/%m/%Y") if fim != date.max else "hoje"
+    return f"{ini_txt} a {fim_txt}"
+
+
+# [ALTERADO] Função reescrita: antes usava campos que não existem (produto e quantidade) e quebrava.
+# Agora percorre a lista de itens de cada venda e mostra o total geral no final.
+def listar_vendas():
+    # Consulta todas as vendas, sem filtrar datas, com o total geral no final.
+
+    print("\n========== HISTORICO DE VENDAS ==========")
+
+    # If responsável por informar que não possui vendas realizadas.
+    if not vendas:
+        print("Nenhuma venda realizada.")
+        return
+
+    total_geral = 0  # [NOVO] Contador do valor total de todas as vendas.
+
+    # For responsável por percorrer todas as vendas e mostrar os dados de cada uma.
+    for venda in vendas:
+
+        print("\n-----------------------------------------")
+        # [NOVO] Mostra o número da venda e a data em que ela foi feita.
+        print("Venda:", venda["codigo"], "| Data:", venda["data"].strftime("%d/%m/%Y"))
+        print("Cliente:", venda["cliente"])
+        print("Vendedor:", venda["vendedor"])
+
+        # [NOVO] For que percorre cada produto (item) comprado nessa venda.
+        for item in venda["itens"]:
+            print(
+                f"  - {item['nome']} | Qtd: {item['quantidade']} "
+                f"| Unitario: R$ {item['valor_unitario']:.2f} "
+                f"| Subtotal: R$ {item['subtotal']:.2f}"
+            )
+
+        print(f"Subtotal: R$ {venda['subtotal']:.2f}")
+        print(f"Imposto: R$ {venda['imposto']:.2f}")           # [NOVO] Imposto total da venda.
+        print(f"Total da venda: R$ {venda['total']:.2f}")      # [NOVO] Total individual da venda.
+        print(f"Comissao: R$ {venda['comissao']:.2f}")         # [NOVO] Comissão total da venda.
+
+        total_geral += venda["total"]  # [NOVO] Soma o total da venda ao total geral.
+
+    print("\n=========================================")
+    print(f"Quantidade de vendas: {len(vendas)}")        # [NOVO] Quantidade de vendas realizadas.
+    print(f"TOTAL DE VENDAS: R$ {total_geral:.2f}")      # [NOVO] Valor somado de todas as vendas.
+
+
+# [NOVO] Relatório que mostra todas as vendas de um período com os totais no final.
+def relatorio_por_periodo():
+
+    print("\n========== RELATORIO POR PERIODO ==========")
+
+    periodo = pedir_periodo()  # Pede o período ao usuário.
+    # If responsável por cancelar o relatório se o período digitado for inválido.
+    if periodo is None:
+        return
+
+    inicio, fim = periodo  # Separa a data inicial e a final.
+    lista = vendas_do_periodo(inicio, fim)  # Pega apenas as vendas do período.
+
+    print(f"\nPeriodo: {texto_periodo(inicio, fim)}")
+
+    # If responsável por informar que não há vendas no período.
+    if not lista:
+        print("Nenhuma venda encontrada no periodo.")
+        return
+
+    # Contadores dos valores somados do período.
+    subtotal = imposto = total = comissao = 0
+
+    # For responsável por mostrar cada venda do período.
+    for venda in lista:
+        print(
+            f"\nVenda {venda['codigo']} | {venda['data'].strftime('%d/%m/%Y')} "
+            f"| Cliente: {venda['cliente']} | Vendedor: {venda['vendedor']}"
+        )
+        print(
+            f"  Subtotal: R$ {venda['subtotal']:.2f} | Imposto: R$ {venda['imposto']:.2f} "
+            f"| Total: R$ {venda['total']:.2f} | Comissao: R$ {venda['comissao']:.2f}"
+        )
+
+        # Soma os valores da venda aos contadores do período.
+        subtotal += venda["subtotal"]
+        imposto += venda["imposto"]
+        total += venda["total"]
+        comissao += venda["comissao"]
+
+    print("\n-----------------------------------------")
+    print(f"Vendas no periodo: {len(lista)}")
+    print(f"Subtotal: R$ {subtotal:.2f}")
+    print(f"Impostos: R$ {imposto:.2f}")
+    print(f"Comissoes: R$ {comissao:.2f}")
+    print(f"TOTAL VENDIDO: R$ {total:.2f}")
+
+
+# [NOVO] Relatório que consolida (soma) a quantidade vendida de cada produto no período.
+def relatorio_produtos_vendidos():
+
+    print("\n========== PRODUTOS VENDIDOS ==========")
+
+    periodo = pedir_periodo()  # Pede o período ao usuário.
+    # If responsável por cancelar o relatório se o período digitado for inválido.
+    if periodo is None:
+        return
+
+    inicio, fim = periodo
+    lista = vendas_do_periodo(inicio, fim)  # Pega apenas as vendas do período.
+
+    print(f"\nPeriodo: {texto_periodo(inicio, fim)}")
+
+    # If responsável por informar que não há vendas no período.
+    if not lista:
+        print("Nenhuma venda encontrada no periodo.")
+        return
+
+    # Consolida por produto
+    consolidado = {}  # Dicionário que guarda a quantidade e o valor somado de cada produto.
+
+    # For responsável por percorrer as vendas do período e depois os itens de cada venda.
+    for venda in lista:
+        for item in venda["itens"]:
+            cod = item["codigo_produto"]  # Código do produto, usado como chave do dicionário.
+
+            # If responsável por criar o produto no dicionário na primeira vez que ele aparece.
+            if cod not in consolidado:
+                consolidado[cod] = {"nome": item["nome"], "quantidade": 0, "subtotal": 0}
+
+            # Soma a quantidade e o valor do item ao total do produto.
+            consolidado[cod]["quantidade"] += item["quantidade"]
+            consolidado[cod]["subtotal"] += item["subtotal"]
+
+    total_unidades = 0  # Contador do total de unidades vendidas.
+    total_valor = 0     # Contador do valor total vendido (sem imposto).
+
+    # For responsável por mostrar cada produto já consolidado.
+    for cod, dados in consolidado.items():
+        print(
+            f"Codigo: {cod} | Produto: {dados['nome']} "
+            f"| Qtd vendida: {dados['quantidade']} "
+            f"| Valor: R$ {dados['subtotal']:.2f}"
+        )
+        total_unidades += dados["quantidade"]
+        total_valor += dados["subtotal"]
+
+    print("\n-----------------------------------------")
+    print(f"Total de unidades vendidas: {total_unidades}")
+    print(f"Valor total dos produtos (sem imposto): R$ {total_valor:.2f}")
+
+
+# [NOVO] Relatório com o total de cada venda, o total geral e o ticket médio do período.
+def relatorio_total_vendas():
+
+    print("\n========== TOTAL DE VENDAS ==========")
+
+    periodo = pedir_periodo()  # Pede o período ao usuário.
+    # If responsável por cancelar o relatório se o período digitado for inválido.
+    if periodo is None:
+        return
+
+    inicio, fim = periodo
+    lista = vendas_do_periodo(inicio, fim)  # Pega apenas as vendas do período.
+
+    print(f"\nPeriodo: {texto_periodo(inicio, fim)}")
+
+    # If responsável por informar que não há vendas no período.
+    if not lista:
+        print("Nenhuma venda encontrada no periodo.")
+        return
+
+    # Soma o total de todas as vendas do período.
+    total = sum(v["total"] for v in lista)
+
+    # For responsável por mostrar o total individual de cada venda.
+    for venda in lista:
+        print(
+            f"Venda {venda['codigo']} | {venda['data'].strftime('%d/%m/%Y')} "
+            f"| Total: R$ {venda['total']:.2f}"
+        )
+
+    print("\n-----------------------------------------")
+    print(f"Quantidade de vendas: {len(lista)}")
+    print(f"TOTAL DE VENDAS: R$ {total:.2f}")
+    # Ticket médio = valor total dividido pela quantidade de vendas.
+    print(f"Ticket medio: R$ {total / len(lista):.2f}")
+
+
+# [NOVO] Relatório que soma os impostos das vendas de um período.
+def relatorio_imposto_periodo():
+
+    print("\n========== IMPOSTO POR PERIODO ==========")
+
+    periodo = pedir_periodo()  # Pede o período ao usuário.
+    # If responsável por cancelar o relatório se o período digitado for inválido.
+    if periodo is None:
+        return
+
+    inicio, fim = periodo
+    lista = vendas_do_periodo(inicio, fim)  # Pega apenas as vendas do período.
+
+    print(f"\nPeriodo: {texto_periodo(inicio, fim)}")
+
+    # If responsável por informar que não há vendas no período.
+    if not lista:
+        print("Nenhuma venda encontrada no periodo.")
+        return
+
+    total_imposto = 0  # Contador do imposto somado do período.
+
+    # For responsável por mostrar o imposto de cada venda e somá-lo ao total.
+    for venda in lista:
+        print(
+            f"Venda {venda['codigo']} | {venda['data'].strftime('%d/%m/%Y')} " #.strftime transforma uma data em texto
+            f"| Subtotal: R$ {venda['subtotal']:.2f} "
+            f"| Imposto: R$ {venda['imposto']:.2f}"
+        )
+        total_imposto += venda["imposto"]
+
+    print("\n-----------------------------------------")
+    print(f"TOTAL DE IMPOSTOS NO PERIODO: R$ {total_imposto:.2f}")
+
+
+# [NOVO] Relatório que mostra o total de comissão agrupado por vendedor.
+def relatorio_comissao_vendedor():
+
+    print("\n========== COMISSAO POR VENDEDOR ==========")
+
+    periodo = pedir_periodo()  # Pede o período ao usuário.
+    # If responsável por cancelar o relatório se o período digitado for inválido.
+    if periodo is None:
+        return
+
+    inicio, fim = periodo
+    lista = vendas_do_periodo(inicio, fim)  # Pega apenas as vendas do período.
+
+    print(f"\nPeriodo: {texto_periodo(inicio, fim)}")
+
+    # If responsável por informar que não há vendas no período.
+    if not lista:
+        print("Nenhuma venda encontrada no periodo.")
+        return
+
+    # Agrupa por vendedor
+    por_vendedor = {}  # Dicionário que guarda as vendas, o total e a comissão de cada vendedor.
+
+    # For responsável por percorrer as vendas e somar os valores de cada vendedor.
+    for venda in lista:
+        nome = venda["vendedor"]  # Nome do vendedor, usado como chave do dicionário.
+
+        # If responsável por criar o vendedor no dicionário na primeira vez que ele aparece.
+        if nome not in por_vendedor:
+            por_vendedor[nome] = {"vendas": 0, "total": 0, "comissao": 0}
+
+        por_vendedor[nome]["vendas"] += 1                      # Conta mais uma venda para o vendedor.
+        por_vendedor[nome]["total"] += venda["total"]          # Soma o total vendido.
+        por_vendedor[nome]["comissao"] += venda["comissao"]    # Soma a comissão do vendedor.
+
+    total_comissao = 0  # Contador da comissão somada de todos os vendedores.
+
+    # For responsável por mostrar o resultado de cada vendedor.
+    for nome, dados in por_vendedor.items():
+        print(
+            f"Vendedor: {nome} | Vendas: {dados['vendas']} "
+            f"| Total vendido: R$ {dados['total']:.2f} "
+            f"| Comissao: R$ {dados['comissao']:.2f}"
+        )
+        total_comissao += dados["comissao"]
+
+    print("\n-----------------------------------------")
+    print(f"TOTAL DE COMISSOES: R$ {total_comissao:.2f}")
+
+
+# ==========================================
+# RECIBO DA VENDA
+# ==========================================
+
+# [NOVO] Função que imprime o recibo da venda com a data e os valores individuais de cada produto.
+def emitir_recibo(venda):
+    # Recibo com data e valores individuais de todos os produtos da venda.
+
+    print("\n==========================================")
+    print("               RECIBO DE VENDA")
+    print("==========================================")
+    print(f"Venda N: {venda['codigo']}")
+    print(f"Data: {venda['data'].strftime('%d/%m/%Y')}")  # Data da venda no formato DD/MM/AAAA.
+    print(f"Cliente: {venda['cliente']}")
+    print(f"Vendedor: {venda['vendedor']}")
+    print("------------------------------------------")
+
+    # For responsável por mostrar todos os produtos da venda (e não só um), cada um com seus valores.
+    for item in venda["itens"]:
+        print(f"{item['nome']}")
+        print(
+            f"  {item['quantidade']} x R$ {item['valor_unitario']:.2f}"
+            f" = R$ {item['subtotal']:.2f}"
+            f" | Imposto ({item['taxa_imposto']}%): R$ {item['imposto']:.2f}"
+            f" | Total: R$ {item['total']:.2f}"
+        )
+
+    print("------------------------------------------")
+    print(f"Subtotal: R$ {venda['subtotal']:.2f}")
+    print(f"Imposto:  R$ {venda['imposto']:.2f}")
+    print(f"TOTAL:    R$ {venda['total']:.2f}")
+    print("==========================================")
+
+
+# [NOVO] Função que permite imprimir novamente o recibo de uma venda já realizada.
+def reimprimir_recibo():
+
+    print("\n========== REIMPRIMIR RECIBO ==========")
+
+    # If responsável por informar que não há vendas realizadas.
+    if not vendas:
+        print("Nenhuma venda realizada.")
+        return
+
+    texto = input("Numero da venda: ").strip()  # Texto digitado pelo usuário.
+
+    # If responsável por verificar se o que foi digitado é um número (sem usar try/except).
+    if not texto.isdecimal():
+        print("Numero invalido!")
+        return
+
+    codigo = int(texto)  # Converte para número inteiro, já que foi validado acima.
+
+    # Procura a venda com o número informado (devolve None se não encontrar).
+    venda = next((v for v in vendas if v["codigo"] == codigo), None)
+
+    # If responsável por informar que a venda não existe.
+    if venda is None:
+        print("Venda nao encontrada!")
+        return
+
+    emitir_recibo(venda)  # Imprime o recibo da venda encontrada.
+
+
+# ==========================================
+# RELATORIOS GERAIS (EXIBIR E SALVAR EM .TXT)
+# ==========================================
+
+# [NOVO] Monta as linhas do relatório de produtos (estoque).
+def montar_relatorio_produtos():
+    linhas = ["RELATÓRIO DE PRODUTOS", LINHA]
+
+    if not produtos:
+        linhas.append("Nenhum produto cadastrado.")
+        return linhas
+
+    total_unidades = 0
+    valor_total = 0.0
+
+    for p in produtos:
+        subtotal = p["valor"] * p["estoque"]
+        total_unidades += p["estoque"]
+        valor_total += subtotal
+        linhas.append(
+            f"Cód: {p['codigo']} | {p['nome']} | "
+            f"Preço: R$ {p['valor']:.2f} | Estoque: {p['estoque']} | "
+            f"Subtotal: R$ {subtotal:.2f}"
+        )
+
+    sem_estoque = [p["nome"] for p in produtos if p["estoque"] == 0]
+    mais_caro = max(produtos, key=lambda p: p["valor"])
+
+    linhas.append(LINHA)
+    linhas.append(f"Total de produtos cadastrados: {len(produtos)}")
+    linhas.append(f"Total de unidades em estoque: {total_unidades}")
+    linhas.append(f"Valor total em estoque: R$ {valor_total:.2f}")
+    linhas.append(f"Produto mais caro: {mais_caro['nome']} (R$ {mais_caro['valor']:.2f})")
+    if sem_estoque:
+        linhas.append("Produtos sem estoque: " + ", ".join(sem_estoque))
+    else:
+        linhas.append("Produtos sem estoque: nenhum")
+
+    return linhas
+
+
+# [NOVO] Monta as linhas do relatório de clientes ou de vendedores (função genérica).
+def montar_relatorio_pessoas(titulo, lista):
+    """Relatório genérico para clientes e vendedores."""
+    linhas = [titulo, LINHA]
+
+    if not lista:
+        linhas.append("Nenhum registro cadastrado.")
+        return linhas
+
+    for pessoa in sorted(lista, key=lambda x: x["nome"].lower()):
+        linhas.append(
+            f"Cód: {pessoa['codigo']} | {pessoa['nome']} | Tel: {pessoa['telefone']}"
+        )
+
+    linhas.append(LINHA)
+    linhas.append(f"Total de registros: {len(lista)}")
+    return linhas
+
+
+# [NOVO] Monta as linhas do relatório geral, agora incluindo os dados das vendas.
+def montar_relatorio_geral():
+    valor_total = sum(p["valor"] * p["estoque"] for p in produtos)
+    unidades = sum(p["estoque"] for p in produtos)
+
+    # Totais das vendas já realizadas.
+    total_vendido = sum(v["total"] for v in vendas)
+    total_imposto = sum(v["imposto"] for v in vendas)
+    total_comissao = sum(v["comissao"] for v in vendas)
+
+    return [
+        "RELATÓRIO GERAL DO SISTEMA",
+        LINHA,
+        f"Produtos cadastrados: {len(produtos)}",
+        f"Unidades em estoque: {unidades}",
+        f"Valor total em estoque: R$ {valor_total:.2f}",
+        f"Clientes cadastrados: {len(clientes)}",
+        f"Vendedores cadastrados: {len(vendedores)}",
+        LINHA,
+        f"Vendas realizadas: {len(vendas)}",
+        f"Total vendido: R$ {total_vendido:.2f}",
+        f"Impostos: R$ {total_imposto:.2f}",
+        f"Comissões: R$ {total_comissao:.2f}",
+    ]
+
+
+# [NOVO] Exibe o relatório na tela e pergunta se o usuário quer salvá-lo em um arquivo .txt.
+def exibir_e_salvar_relatorio(linhas):
+    agora = datetime.now()
+    cabecalho = [f"Gerado em: {agora.strftime('%d/%m/%Y %H:%M:%S')}", ""]
+    conteudo = cabecalho + linhas
+
+    print()
+    for linha in conteudo:
+        print(linha)
+
+    salvar = input("\nDeseja salvar o relatório em arquivo .txt? (s/n): ").strip().lower()
+    if salvar == "s":
+        nome_arquivo = "relatorio_" + agora.strftime("%Y%m%d_%H%M%S") + ".txt"
+        try:
+            with open(nome_arquivo, "w", encoding="utf-8") as arquivo:
+                arquivo.write("\n".join(conteudo))
+            print("Relatório salvo em:", nome_arquivo)
+        except OSError:
+            print("Erro: Não foi possível salvar o arquivo!")
+
+
+# ==========================================
+# MENU RELATORIOS (SEPARADO POR AREAS)
+# ==========================================
+
+# [NOVO] Submenu da área de VENDAS: reúne os relatórios ligados às vendas realizadas.
+def menu_relatorios_vendas():
+
+    while True:
+
+        print("\n========== RELATORIOS > VENDAS ==========")
+
+        print("1. Historico de Vendas (todas)")
+        print("2. Relatorio por Periodo")
+        print("3. Produtos Vendidos")
+        print("4. Total de Vendas")
+        print("5. Imposto por Periodo")
+        print("6. Comissao por Vendedor")
+        print("7. Reimprimir Recibo")
+        print("8. Voltar")
+
+        print("=========================================")
+
+        opcao = input("Escolha uma opcao: ").strip()
+
+        if opcao == "1":
+            listar_vendas()
+        elif opcao == "2":
+            relatorio_por_periodo()
+        elif opcao == "3":
+            relatorio_produtos_vendidos()
+        elif opcao == "4":
+            relatorio_total_vendas()
+        elif opcao == "5":
+            relatorio_imposto_periodo()
+        elif opcao == "6":
+            relatorio_comissao_vendedor()
+        elif opcao == "7":
+            reimprimir_recibo()
+        elif opcao == "8":
+            break  # Volta para o menu de áreas.
+        else:
+            print("Opcao invalida! Escolha entre 1 e 8.")
+
+
+# [NOVO] Submenu da área de ESTOQUE: reúne os relatórios ligados aos produtos cadastrados.
+def menu_relatorios_estoque():
+
+    while True:
+
+        print("\n========== RELATORIOS > ESTOQUE ==========")
+
+        print("1. Relatorio de Produtos (estoque)")
+        print("2. Voltar")
+
+        print("==========================================")
+
+        opcao = input("Escolha uma opcao: ").strip()
+
+        if opcao == "1":
+            exibir_e_salvar_relatorio(montar_relatorio_produtos())
+        elif opcao == "2":
+            break  # Volta para o menu de áreas.
+        else:
+            print("Opcao invalida! Escolha entre 1 e 2.")
+
+
+# [NOVO] Submenu da área de PESSOAS: reúne os relatórios de clientes e de vendedores.
+def menu_relatorios_pessoas():
+
+    while True:
+
+        print("\n========== RELATORIOS > CLIENTES E VENDEDORES ==========")
+
+        print("1. Relatorio de Clientes")
+        print("2. Relatorio de Vendedores")
+        print("3. Voltar")
+
+        print("========================================================")
+
+        opcao = input("Escolha uma opcao: ").strip()
+
+        if opcao == "1":
+            exibir_e_salvar_relatorio(montar_relatorio_pessoas("RELATÓRIO DE CLIENTES", clientes))
+        elif opcao == "2":
+            exibir_e_salvar_relatorio(montar_relatorio_pessoas("RELATÓRIO DE VENDEDORES", vendedores))
+        elif opcao == "3":
+            break  # Volta para o menu de áreas.
+        else:
+            print("Opcao invalida! Escolha entre 1 e 3.")
+
+
+# [ALTERADO] Menu principal dos relatórios: agora só escolhe a ÁREA e abre o submenu correspondente.
+def menu_relatorios():
+
+    # While responsável por manter o menu aberto até o usuário escolher voltar.
+    while True:
+
+        print("\n========== RELATORIOS ==========")
+
+        print("1. Vendas")
+        print("2. Estoque")
+        print("3. Clientes e Vendedores")
+        print("4. Relatorio Geral do Sistema")
+        print("5. Voltar ao Menu Principal")
+
+        print("================================")
+
+        opcao = input("Escolha uma area: ").strip()
+
+        if opcao == "1":
+            menu_relatorios_vendas()
+        elif opcao == "2":
+            menu_relatorios_estoque()
+        elif opcao == "3":
+            menu_relatorios_pessoas()
+        elif opcao == "4":
+            exibir_e_salvar_relatorio(montar_relatorio_geral())
+        elif opcao == "5":
+            print("\nVoltando ao menu principal...")
+            break  # Sai do menu de relatórios.
+        else:
+            print("Opcao invalida! Escolha entre 1 e 5.")
+
+
+# ==========================================
+# MENU CLIENTES E VENDEDORES
+# ==========================================
+
+def menu_pessoas():
+
+    while True:
+
+        print("\n========== CLIENTES E VENDEDORES ==========")
+
+        print("1. Cadastrar Cliente")
+        print("2. Consultar Clientes")
+        print("3. Cadastrar Vendedor")
+        print("4. Consultar Vendedores")
+        print("5. Voltar ao Menu Principal")
+
+        print("===========================================")
+
+        opcao = input("Escolha uma opcao: ").strip()
+
+        match opcao:
+
+            case "1":
+                cadastrar_cliente()
+
+            case "2":
+                consultar_clientes()
+
+            case "3":
+                cadastrar_vendedor()
+
+            case "4":
+                consultar_vendedores()
+
+            case "5":
+                print("\nVoltando ao menu principal...")
+                break
+
+            case _:
+                print("Opcao invalida! Escolha entre 1 e 5.")
+
+
+# ==========================================
+# MENU ESTOQUE
+# ==========================================
+
+
+def menu_estoque():
+
+    while True:
+
+        print("\n========== CONTROLE DE ESTOQUE ==========")
+
+        print("1. Cadastrar Produto")
+        print("2. Adicionar Produto ao Estoque")
+        print("3. Remover Produto do Estoque")
+        print("4. Verificar Estoque")
+        print("5. Voltar ao Menu Principal")
+
+        print("=========================================")
+
+        opcao = input("Escolha uma opcao: ").strip()
+
+       
+        if opcao == "1":
+            cadastrar_produto()
+        elif opcao == "2":
+            adicionar_produto_estoque()
+        elif opcao == "3":
+            remover_produto_estoque()
+        elif opcao == "4":
+            listar_produtos()
+        elif opcao == "5":
+            print("\nVoltando ao menu principal...")
+            break
+        else:
+            print("Opcao invalida! Escolha entre 1 e 5.")
+
+
+def menu_principal():
+
+    while True:
+
+        print("\n========== SISTEMA DE VENDAS ==========")
+
+        print("1. Controle de Estoque")
+        print("2. Clientes e Vendedores")
+        print("3. Registrar Venda")
+        print("4. Relatorios")
+        print("5. Fechar Sistema")
+
+        print("=======================================")
+
+        opcao = input("Escolha uma opcao: ").strip()
+
+        match opcao:
+
+            case "1":
+                menu_estoque()
+
+            case "2":
+                menu_pessoas()
+
+            case "3":
+                registrar_venda()
+
+            case "4":
+                menu_relatorios()
+
+            case "5":
+                print("\nEncerrando o sistema...")
+                print("Obrigado por utilizar o sistema!")
+                break
+
+            case _:
+                print("Opcao invalida! Escolha entre 1 e 5.")
+
+# ==========================================
+# INICIAR SISTEMA
+# ==========================================
+
+if __name__ == "__main__":
+    menu_principal()
